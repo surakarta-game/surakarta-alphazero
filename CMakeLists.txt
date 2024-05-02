@@ -27,7 +27,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif()
 
 add_subdirectory(third-party/surakarta-core)
-add_subdirectory(third-party/tiny-dnn)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third-party/surakarta-core/include)
