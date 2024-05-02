@@ -1,0 +1,6 @@
+[submodule "third-party/tiny-dnn"]
+	path = third-party/tiny-dnn
+	url = https://github.com/tiny-dnn/tiny-dnn
+[submodule "third-party/surakarta-core"]
+	path = third-party/surakarta-core
+	url = https://github.com/surakarta-game/surakarta-core
