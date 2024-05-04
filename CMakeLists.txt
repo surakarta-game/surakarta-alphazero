@@ -34,6 +34,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third-party/tiny-dnn)
 
 SET(SURAKARTA_ALPHAZERO_SOURCE
     src/surakarta_agent_alphazero.cpp
+    src/surakarta_alphazero_mcts.cpp
 )
 add_library(surakarta-alphazero STATIC ${SURAKARTA_ALPHAZERO_SOURCE})
 target_link_libraries(surakarta-alphazero surakarta)
