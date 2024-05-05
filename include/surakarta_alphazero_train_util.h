@@ -14,7 +14,9 @@ class SurakartaAlphazeroTrainUtil {
           temperature_(temperature){};
 
     /// @brief Do a single self-play game and train the model
-    void TrainSingleIteration(std::shared_ptr<SurakartaLogger> logger);
+    void TrainSingleIteration(std::shared_ptr<SurakartaLogger> logger,
+                              std::shared_ptr<SurakartaAlphazeroNeuralNetworkBase::ModelFactory> model_factory = nullptr,
+                              std::string model_path = "");  // Used for duplicate model to utilize multi-threading
 
    private:
     std::shared_ptr<SurakartaAlphazeroNeuralNetworkBase> model_;
