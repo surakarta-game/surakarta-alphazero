@@ -4,14 +4,23 @@
 #include "surakarta.h"
 #include "surakarta_alphazero.h"
 
-void SurakartaAlphazeroTrainUtil::TrainSingleIteration(std::shared_ptr<SurakartaLogger> logger) {
+void SurakartaAlphazeroTrainUtil::TrainSingleIteration(
+    std::shared_ptr<SurakartaLogger> logger,
+    std::shared_ptr<SurakartaAlphazeroNeuralNetworkBase::ModelFactory> model_factory,
+    std::string model_path) {
     const int concurrency = std::thread::hardware_concurrency();
     auto threads = std::make_unique<std::thread[]>(concurrency);
     auto train_entries = std::make_unique<std::vector<SurakartaAlphazeroNeuralNetworkBase::TrainEntry>>();
     std::mutex mutex;
     for (int i = 0; i < concurrency; i++) {
-        threads[i] = std::thread([this, &train_entries, logger, &mutex]() {
-            auto factory = std::make_shared<SurakartaAgentAlphazeroFactory>(model_, simulation_per_move_, cpuct_, temperature_);
+        threads[i] = std::thread([this, &train_entries, logger, &mutex, model_factory, model_path]() {
+            std::shared_ptr<SurakartaAlphazeroNeuralNetworkBase> model;
+            if (!model_factory || model_path.empty()) {
+                model = model_;
+            } else {
+                model = model_factory->LoadModel(model_path);
+            }
+            auto factory = std::make_shared<SurakartaAgentAlphazeroFactory>(model, simulation_per_move_, cpuct_, temperature_);
             auto train_entries_local = std::make_unique<std::vector<SurakartaAlphazeroNeuralNetworkBase::TrainEntry>>();
             factory->AddOnSimulationsFinishedHandler([&train_entries_local, &mutex](SurakartaAlphazeroMCTS& mcts) {
                 train_entries_local->push_back(mcts.GetTrainEntriesWithoutValue());
@@ -64,7 +73,7 @@ void SurakartaAlphazeroLoadTrainSaveUtil::Train(const std::string& model_path,
     auto train_util = SurakartaAlphazeroTrainUtil(model, simulation_per_move, cpuct, temperature);
     logger->Log("Start training. Total: %d iterations", iterations);
     for (int i = 0; i < iterations; i++) {
-        train_util.TrainSingleIteration(logger);
+        train_util.TrainSingleIteration(logger, model_factory_, model_path);
         model->SaveModel(model_path);
         logger->Log("Iteration %d/%d completed and new model saved", i + 1, iterations);
     }
