@@ -6,7 +6,7 @@ constexpr int output_vector_size_probabilities = BOARD_SIZE * BOARD_SIZE * BOARD
 constexpr int output_vector_size_value = 1;
 constexpr int hidden_layer_size = (input_vector_size + output_vector_size_probabilities + 1);
 
-static tiny_dnn::tensor_t ConvertInput(SurakartaAlphazeroNeuralNetworkBase::NeuralNetworkInput input) {
+static tiny_dnn::tensor_t ConvertInput(SurakartaAlphazeroNeuralNetworkBase::NeuralNetworkInput& input) {
     tiny_dnn::vec_t vec(input_vector_size);
     for (int i = 0; i < BOARD_SIZE; i++) {
         for (int j = 0; j < BOARD_SIZE; j++) {
@@ -45,7 +45,7 @@ static SurakartaAlphazeroNeuralNetworkBase::NeuralNetworkOutput ConvertOutput(ti
 
 /// @return first: probability_output, second: value_output
 static tiny_dnn::tensor_t ConvertOutput(
-    SurakartaAlphazeroNeuralNetworkBase::NeuralNetworkOutput output) {
+    SurakartaAlphazeroNeuralNetworkBase::NeuralNetworkOutput& output) {
     tiny_dnn::vec_t probability_output(output_vector_size_probabilities);
     tiny_dnn::vec_t value_output(1);
     for (int i = 0; i < BOARD_SIZE; i++) {
@@ -80,7 +80,7 @@ static tiny_dnn::tensor_t ConvertOutput(
 class SurakartaAlphazeroNeuralNetworkImpl : public SurakartaAlphazeroNeuralNetworkBase {
    public:
     virtual NeuralNetworkOutput Predict(NeuralNetworkInput input) override {
-        const auto input_tensor = ConvertInput(std::move(input));
+        const auto input_tensor = ConvertInput(input);
         const auto output_tensor = network_->predict(input_tensor);
         return ConvertOutput(output_tensor);
     }
@@ -89,8 +89,8 @@ class SurakartaAlphazeroNeuralNetworkImpl : public SurakartaAlphazeroNeuralNetwo
         std::vector<tiny_dnn::tensor_t> input_tensor(train_data->size());
         std::vector<tiny_dnn::tensor_t> output_tensor(train_data->size());
         for (int i = 0; i < train_data->size(); i++) {
-            input_tensor[i] = ConvertInput(std::move(train_data->at(i).input));
-            output_tensor[i] = ConvertOutput(std::move(train_data->at(i).output));
+            input_tensor[i] = ConvertInput(*train_data->at(i).input);
+            output_tensor[i] = ConvertOutput(*train_data->at(i).output);
         }
         tiny_dnn::adam optimizer;
         network_->fit<tiny_dnn::mse>(optimizer, input_tensor, output_tensor, train_batch_size, epochs);

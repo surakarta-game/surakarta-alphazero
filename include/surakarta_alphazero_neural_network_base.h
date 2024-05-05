@@ -24,8 +24,8 @@ class SurakartaAlphazeroNeuralNetworkBase {
     virtual NeuralNetworkOutput Predict(NeuralNetworkInput input) = 0;
 
     typedef struct {
-        NeuralNetworkInput input;
-        NeuralNetworkOutput output;
+        std::unique_ptr<NeuralNetworkInput> input;
+        std::unique_ptr<NeuralNetworkOutput> output;
     } TrainEntry;
 
     virtual void Train(std::unique_ptr<std::vector<TrainEntry>> train_data) = 0;

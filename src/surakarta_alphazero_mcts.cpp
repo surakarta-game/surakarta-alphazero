@@ -160,18 +160,20 @@ void SurakartaAlphazeroMCTS::Simulate() {
 
 SurakartaAlphazeroNeuralNetworkBase::TrainEntry SurakartaAlphazeroMCTS::GetTrainEntriesWithoutValue() const {
     auto ret = SurakartaAlphazeroNeuralNetworkBase::TrainEntry();
-    ret.input.board = std::make_unique<SurakartaBoard>(*board_);
-    ret.input.game_info = *game_info_;
-    ret.input.my_color = my_color_;
-    ret.output.current_status_value = 0.0f;
-    ret.output.move_probabilities = std::make_unique<std::vector<SurakartaAlphazeroNeuralNetworkBase::MoveWithProbability>>();
+    ret.input = std::make_unique<SurakartaAlphazeroNeuralNetworkBase::NeuralNetworkInput>();
+    ret.input->board = std::make_unique<SurakartaBoard>(*board_);
+    ret.input->game_info = *game_info_;
+    ret.input->my_color = my_color_;
+    ret.output = std::make_unique<SurakartaAlphazeroNeuralNetworkBase::NeuralNetworkOutput>();
+    ret.output->current_status_value = 0.0f;
+    ret.output->move_probabilities = std::make_unique<std::vector<SurakartaAlphazeroNeuralNetworkBase::MoveWithProbability>>();
     int simulation_count_debug = 0;
     for (int i = 0; i < root_->possible_moves_.size(); i++) {
         if (root_->childs_[i] != nullptr) {
             auto move_with_probability = SurakartaAlphazeroNeuralNetworkBase::MoveWithProbability();
             move_with_probability.move = root_->possible_moves_[i];
             move_with_probability.probability = static_cast<float>(root_->childs_[i]->simulation_count_) / root_->simulation_count_;
-            ret.output.move_probabilities->push_back(move_with_probability);
+            ret.output->move_probabilities->push_back(move_with_probability);
             simulation_count_debug += root_->childs_[i]->simulation_count_;
         }
     }

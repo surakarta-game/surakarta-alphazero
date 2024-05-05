@@ -7,32 +7,37 @@
 void SurakartaAlphazeroTrainUtil::TrainSingleIteration(std::shared_ptr<SurakartaLogger> logger) {
     const int concurrency = std::thread::hardware_concurrency();
     auto threads = std::make_unique<std::thread[]>(concurrency);
-    auto train_entries = std::make_unique<std::vector<SurakartaAlphazeroNeuralNetworkBase::TrainEntry>>(concurrency);
+    auto train_entries = std::make_unique<std::vector<SurakartaAlphazeroNeuralNetworkBase::TrainEntry>>();
     std::mutex mutex;
     for (int i = 0; i < concurrency; i++) {
         threads[i] = std::thread([this, &train_entries, logger, &mutex]() {
             auto factory = std::make_shared<SurakartaAgentAlphazeroFactory>(model_, simulation_per_move_, cpuct_, temperature_);
-            factory->AddOnSimulationsFinishedHandler([&train_entries, &mutex](SurakartaAlphazeroMCTS& mcts) {
-                std::lock_guard<std::mutex> lock(mutex);
-                train_entries->push_back(mcts.GetTrainEntriesWithoutValue());
+            auto train_entries_local = std::make_unique<std::vector<SurakartaAlphazeroNeuralNetworkBase::TrainEntry>>();
+            factory->AddOnSimulationsFinishedHandler([&train_entries_local, &mutex](SurakartaAlphazeroMCTS& mcts) {
+                train_entries_local->push_back(mcts.GetTrainEntriesWithoutValue());
             });
             auto daemon = SurakartaDaemon(BOARD_SIZE, MAX_NO_CAPTURE_ROUND, factory, factory);
             daemon.Execute();
             const auto game_info = daemon.CopyGameInfo();
-            {
-                std::lock_guard<std::mutex> lock(mutex);
-                logger->Log("Game finished. total %d moves, stalemate: %s", game_info.num_round_,
-                            game_info.Winner() == PieceColor::NONE ? "true" : "false");
-            }
             const auto winner = daemon.CopyGameInfo().Winner();
             if (winner == PieceColor::NONE) {
-                for (auto& entry : *train_entries) {
-                    entry.output.current_status_value = 0.0f;
+                for (auto& entry : *train_entries_local) {
+                    entry.output->current_status_value = 0.0f;
                 }
             } else {
-                for (auto& entry : *train_entries) {
-                    entry.output.current_status_value = winner == entry.input.game_info.current_player_ ? 1.0f : -1.0f;
+                for (auto& entry : *train_entries_local) {
+                    entry.output->current_status_value = winner == entry.input->game_info.current_player_ ? 1.0f : -1.0f;
                 }
+            }
+            {
+                std::lock_guard<std::mutex> lock(mutex);
+                for (auto& entry : *train_entries_local) {
+                    train_entries->push_back(SurakartaAlphazeroNeuralNetworkBase::TrainEntry());
+                    train_entries->back().input = std::move(entry.input);
+                    train_entries->back().output = std::move(entry.output);
+                }
+                logger->Log("Game finished. total %d moves, stalemate: %s", game_info.num_round_,
+                            game_info.Winner() == PieceColor::NONE ? "true" : "false");
             }
         });
     }
