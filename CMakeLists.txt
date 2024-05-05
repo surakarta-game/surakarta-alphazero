@@ -34,6 +34,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third-party/tiny-dnn)
 
 SET(SURAKARTA_ALPHAZERO_SOURCE
     src/surakarta_agent_alphazero.cpp
+    src/surakarta_alphazero_mcts.cpp
+    src/surakarta_alphazero_train_util.cpp
+    src/surakarta_alphazero_neural_network.cpp
 )
 add_library(surakarta-alphazero STATIC ${SURAKARTA_ALPHAZERO_SOURCE})
 target_link_libraries(surakarta-alphazero surakarta)
@@ -50,4 +53,5 @@ SET(SURAKARTA_ALPHAZERO_BENCHMARK_SOURCE
 add_executable(surakarta-alphazero-benchmark ${SURAKARTA_ALPHAZERO_BENCHMARK_SOURCE})
 target_link_libraries(surakarta-alphazero-benchmark surakarta-alphazero)
 
+add_test(NAME surakarta-alphazero-train-test COMMAND surakarta-alphazero-train tmp.bin -i 1 -s 2 -c 1.0 -t 1.0 -b 1 -e 1)
 install(TARGETS surakarta-alphazero-train surakarta-alphazero-benchmark)
