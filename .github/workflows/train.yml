@@ -54,10 +54,10 @@ jobs:
 
     - name: Train
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      run: bin/surakarta-alphazero-train model.bin --iterations 100 --simulation 50 --cpuct 1.0 --temperature 1.0 --batch 1 --epochs 1
+      run: bin/surakarta-alphazero-train model.bin --iterations 100 --simulation 10 --cpuct 1.0 --temperature 1.0 --batch 1 --epochs 1
 
     - name: Upload Model
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: model
         path: ${{ steps.strings.outputs.build-output-dir }}/model.bin
