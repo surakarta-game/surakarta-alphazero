@@ -1,3 +1,4 @@
+#include <mutex>
 #include "surakarta_alphazero_neural_network_factory.h"
 #include "tiny_dnn/tiny_dnn.h"
 
@@ -80,12 +81,14 @@ static tiny_dnn::tensor_t ConvertOutput(
 class SurakartaAlphazeroNeuralNetworkImpl : public SurakartaAlphazeroNeuralNetworkBase {
    public:
     virtual NeuralNetworkOutput Predict(NeuralNetworkInput input) override {
+        std::lock_guard<std::mutex> lock(mutex);
         const auto input_tensor = ConvertInput(input);
         const auto output_tensor = network_->predict(input_tensor);
         return ConvertOutput(output_tensor);
     }
 
     virtual void Train(std::unique_ptr<std::vector<TrainEntry>> train_data) override {
+        std::lock_guard<std::mutex> lock(mutex);
         std::vector<tiny_dnn::tensor_t> input_tensor(train_data->size());
         std::vector<tiny_dnn::tensor_t> output_tensor(train_data->size());
         for (int i = 0; i < train_data->size(); i++) {
@@ -97,6 +100,7 @@ class SurakartaAlphazeroNeuralNetworkImpl : public SurakartaAlphazeroNeuralNetwo
     }
 
     virtual void SaveModel(const std::string& model_path) override {
+        std::lock_guard<std::mutex> lock(mutex);
         network_->save(model_path);
     }
 
@@ -105,6 +109,7 @@ class SurakartaAlphazeroNeuralNetworkImpl : public SurakartaAlphazeroNeuralNetwo
     std::unique_ptr<tiny_dnn::network<tiny_dnn::graph>> network_;
     const size_t train_batch_size;
     const size_t epochs;
+    std::mutex mutex;
 
     SurakartaAlphazeroNeuralNetworkImpl(size_t train_batch_size, size_t epochs, std::unique_ptr<tiny_dnn::network<tiny_dnn::graph>> network_)
         : train_batch_size(train_batch_size), epochs(epochs), network_(std::move(network_)) {}
