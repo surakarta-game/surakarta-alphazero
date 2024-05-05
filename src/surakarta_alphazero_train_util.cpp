@@ -36,8 +36,11 @@ void SurakartaAlphazeroTrainUtil::TrainSingleIteration(std::shared_ptr<Surakarta
                     train_entries->back().input = std::move(entry.input);
                     train_entries->back().output = std::move(entry.output);
                 }
-                logger->Log("Game finished. total %d moves, stalemate: %s", game_info.num_round_,
-                            game_info.Winner() == PieceColor::NONE ? "true" : "false");
+                logger->Log("Game finished. total %d moves, winner: %s", game_info.num_round_,
+                            game_info.Winner() == PieceColor::NONE    ? "none"
+                            : game_info.Winner() == PieceColor::WHITE ? "white"
+                            : game_info.Winner() == PieceColor::BLACK ? "black"
+                                                                      : "unknown");
             }
         });
     }
