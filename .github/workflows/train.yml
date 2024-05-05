@@ -1,6 +1,6 @@
 name: Model Training
 
-on: [workflow_dispatch, push]
+on: [workflow_dispatch]
 
 jobs:
   train:
