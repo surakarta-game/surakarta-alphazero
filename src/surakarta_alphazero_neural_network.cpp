@@ -28,15 +28,15 @@ static SurakartaAlphazeroNeuralNetworkBase::NeuralNetworkOutput ConvertOutput(ti
     SurakartaAlphazeroNeuralNetworkBase::NeuralNetworkOutput ret;
     ret.move_probabilities = std::make_unique<std::vector<SurakartaAlphazeroNeuralNetworkBase::MoveWithProbability>>();
     for (int i = 0; i < probability_output.size(); i++) {
-        SurakartaAlphazeroNeuralNetworkBase::MoveWithProbability move_with_probability{
-            .move = SurakartaMove(
-                i / (BOARD_SIZE * BOARD_SIZE) / BOARD_SIZE,
-                i / (BOARD_SIZE * BOARD_SIZE) % BOARD_SIZE,
-                i % (BOARD_SIZE * BOARD_SIZE) / BOARD_SIZE,
-                i % (BOARD_SIZE * BOARD_SIZE) % BOARD_SIZE,
-                SurakartaPlayer::UNKNOWN),
-            .probability = probability_output[i],
-        };
+        SurakartaMove move(
+            i / (BOARD_SIZE * BOARD_SIZE) / BOARD_SIZE,
+            i / (BOARD_SIZE * BOARD_SIZE) % BOARD_SIZE,
+            i % (BOARD_SIZE * BOARD_SIZE) / BOARD_SIZE,
+            i % (BOARD_SIZE * BOARD_SIZE) % BOARD_SIZE,
+            SurakartaPlayer::UNKNOWN);
+        SurakartaAlphazeroNeuralNetworkBase::MoveWithProbability move_with_probability;
+        move_with_probability.move = move;
+        move_with_probability.probability = probability_output[i];
         ret.move_probabilities->push_back(move_with_probability);
     }
     ret.current_status_value = value_output[0];

@@ -3,6 +3,7 @@
 #include "surakarta_alphazero_mcts.h"
 #include <assert.h>
 #include <algorithm>
+#include <numeric>
 
 SurakartaAlphazeroMCTS::SurakartaAlphazeroMCTS(
     std::shared_ptr<SurakartaBoard> board,
@@ -49,9 +50,11 @@ std::unique_ptr<SurakartaAlphazeroMCTS::Node> SurakartaAlphazeroMCTS::CreateNode
         self.Ns[s] = 0
         return -v
     */
-    const auto neural_network_output = neural_network_->Predict({.board = std::make_unique<SurakartaBoard>(*board_),
-                                                                 .game_info = *game_info_,
-                                                                 .my_color = my_color_});
+    SurakartaAlphazeroNeuralNetworkBase::NeuralNetworkInput input;
+    input.board = std::make_unique<SurakartaBoard>(*board_);
+    input.game_info = *game_info_;
+    input.my_color = my_color_;
+    const auto neural_network_output = neural_network_->Predict(std::move(input));
     node->neural_network_predicted_move_probabilities_.resize(node->possible_moves_.size());
     if (node->possible_moves_.size() > 0) {
         for (int i = 0; i < node->possible_moves_.size(); i++) {
