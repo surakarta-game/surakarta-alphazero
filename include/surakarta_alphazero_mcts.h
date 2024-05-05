@@ -1,3 +1,4 @@
+#pragma once
 // This class is a cpp re-implementation of https://github.com/suragnair/alpha-zero-general/blob/master/MCTS.py
 
 #include "surakarta.h"
@@ -24,9 +25,16 @@ class SurakartaAlphazeroMCTS {
     /// @return
     /// A vector of moves with their probabilities.
     std::unique_ptr<std::vector<MoveWithProbability>>
-    CalculateMoveProbabilities(float temperature);  // def getActionProb(self, canonicalBoard, temp=1):
+    CalculateMoveProbabilities(float temperature) const;  // def getActionProb(self, canonicalBoard, temp=1):
 
     void Simulate();
+
+    /// @brief
+    /// Get the training entries without the value. This is used to train the neural network.
+    /// You need to fullfill the value of the entries before training.
+    /// @return
+    /// A vector of training entries, without the value.
+    SurakartaAlphazeroNeuralNetworkBase::TrainEntry GetTrainEntriesWithoutValue() const;
 
    private:
     std::shared_ptr<SurakartaBoard> board_;

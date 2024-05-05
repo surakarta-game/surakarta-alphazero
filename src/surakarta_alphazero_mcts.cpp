@@ -1,6 +1,7 @@
 // This class is a cpp re-implementation of https://github.com/suragnair/alpha-zero-general/blob/master/MCTS.py
 
 #include "surakarta_alphazero_mcts.h"
+#include <assert.h>
 #include <algorithm>
 
 SurakartaAlphazeroMCTS::SurakartaAlphazeroMCTS(
@@ -48,27 +49,37 @@ std::unique_ptr<SurakartaAlphazeroMCTS::Node> SurakartaAlphazeroMCTS::CreateNode
         self.Ns[s] = 0
         return -v
     */
-    const auto neural_network_output = neural_network_->Predict(board_, game_info_, my_color_);
+    const auto neural_network_output = neural_network_->Predict({.board = std::make_unique<SurakartaBoard>(*board_),
+                                                                 .game_info = *game_info_,
+                                                                 .my_color = my_color_});
     node->neural_network_predicted_move_probabilities_.resize(node->possible_moves_.size());
-    for (int i = 0; i < node->possible_moves_.size(); i++) {
-        node->neural_network_predicted_move_probabilities_[i] = 0;
-    }
-    for (auto& output_entry : *neural_network_output.move_probabilities) {
-        const auto move_index = std::find(node->possible_moves_.begin(), node->possible_moves_.end(), output_entry.move) - node->possible_moves_.begin();
-        if (move_index < node->possible_moves_.size()) {  // is valid move
-            node->neural_network_predicted_move_probabilities_[move_index] = output_entry.probability;
+    if (node->possible_moves_.size() > 0) {
+        for (int i = 0; i < node->possible_moves_.size(); i++) {
+            node->neural_network_predicted_move_probabilities_[i] = 0;
         }
-    }
-    const auto sum = std::accumulate(
-        node->neural_network_predicted_move_probabilities_.begin(), node->neural_network_predicted_move_probabilities_.end(), 0.0f);
-    if (sum > 0) {
-        for (auto& probability : node->neural_network_predicted_move_probabilities_) {
-            probability /= sum;
+        for (auto& output_entry : *neural_network_output.move_probabilities) {
+            int move_index = -1;
+            for (int i = 0; i < node->possible_moves_.size(); i++) {
+                if (node->possible_moves_[i].from == output_entry.move.from && node->possible_moves_[i].to == output_entry.move.to) {
+                    move_index = i;
+                    break;
+                }
+            }
+            if (move_index >= 0) {  // is valid move
+                node->neural_network_predicted_move_probabilities_[move_index] = output_entry.probability;
+            }
         }
-    } else {
-        printf("All valid moves were masked, doing a workaround.\n");
-        for (auto& probability : node->neural_network_predicted_move_probabilities_) {
-            probability = 1.0f / node->possible_moves_.size();
+        const auto sum = std::accumulate(
+            node->neural_network_predicted_move_probabilities_.begin(), node->neural_network_predicted_move_probabilities_.end(), 0.0f);
+        if (sum > 0) {
+            for (auto& probability : node->neural_network_predicted_move_probabilities_) {
+                probability /= sum;
+            }
+        } else {
+            fprintf(stderr, "All valid moves were masked, doing a workaround.\n");
+            for (auto& probability : node->neural_network_predicted_move_probabilities_) {
+                probability = 1.0f / node->possible_moves_.size();
+            }
         }
     }
     node->Q = neural_network_output.current_status_value;
@@ -78,7 +89,7 @@ std::unique_ptr<SurakartaAlphazeroMCTS::Node> SurakartaAlphazeroMCTS::CreateNode
 
 // def getActionProb(self, canonicalBoard, temp=1):
 std::unique_ptr<std::vector<SurakartaAlphazeroMCTS::MoveWithProbability>>
-SurakartaAlphazeroMCTS::CalculateMoveProbabilities(float temperature) {
+SurakartaAlphazeroMCTS::CalculateMoveProbabilities(float temperature) const {
     /*
     s = self.game.stringRepresentation(canonicalBoard)
     counts = [self.Nsa[(s, a)] if (s, a) in self.Nsa else 0 for a in range(self.game.getActionSize())]
@@ -95,19 +106,22 @@ SurakartaAlphazeroMCTS::CalculateMoveProbabilities(float temperature) {
     probs = [x / counts_sum for x in counts]
     return probs
     */
-    std::vector<int> simulation_count_for_move;
+
+    if (root_->possible_moves_.size() == 0) {
+        return std::make_unique<std::vector<MoveWithProbability>>();
+    }
+    int simulation_count_max = 0;
     for (int i = 0; i < root_->possible_moves_.size(); i++) {
-        if (root_->childs_[i] != nullptr) {
-            simulation_count_for_move.push_back(root_->childs_[i]->simulation_count_);
-        } else {
-            simulation_count_for_move.push_back(0);
+        if (root_->childs_[i] != nullptr && root_->childs_[i]->simulation_count_ > simulation_count_max) {
+            simulation_count_max = root_->childs_[i]->simulation_count_;
         }
     }
+    if (simulation_count_max == 0)
+        throw std::runtime_error("SurakartaAlphazeroMCTS::Simulate() should be called more than twice, but it's not");
     if (temperature == 0) {
-        const auto simulation_count_max = *std::max_element(simulation_count_for_move.begin(), simulation_count_for_move.end());
         auto best_move_indexes = std::vector<int>();
-        for (int i = 0; i < simulation_count_for_move.size(); i++) {
-            if (simulation_count_for_move[i] == simulation_count_max) {
+        for (int i = 0; i < root_->possible_moves_.size(); i++) {
+            if (root_->childs_[i] != nullptr && root_->childs_[i]->simulation_count_ == simulation_count_max) {
                 best_move_indexes.push_back(i);
             }
         }
@@ -122,14 +136,19 @@ SurakartaAlphazeroMCTS::CalculateMoveProbabilities(float temperature) {
         }
         return ret;
     } else {
-        auto counts_with_temperature = std::vector<float>(root_->possible_moves_.size());
+        auto counts_with_temperature = std::vector<float>();
+        auto counts_with_temperature_moves = std::vector<SurakartaMove>();
         for (int i = 0; i < root_->possible_moves_.size(); i++) {
-            counts_with_temperature[i] = std::pow(simulation_count_for_move[i], 1.0f / temperature);
+            if (root_->childs_[i] != nullptr) {
+                assert(root_->childs_[i]->simulation_count_ > 0);
+                counts_with_temperature.push_back(std::pow(root_->childs_[i]->simulation_count_, 1.0f / temperature));
+                counts_with_temperature_moves.push_back(root_->possible_moves_[i]);
+            }
         }
         const auto counts_sum = std::accumulate(counts_with_temperature.begin(), counts_with_temperature.end(), 0.0f);
-        auto ret = std::make_unique<std::vector<MoveWithProbability>>(root_->possible_moves_.size());
-        for (int i = 0; i < root_->possible_moves_.size(); i++) {
-            (*ret)[i] = {root_->possible_moves_[i], counts_with_temperature[i] / counts_sum};
+        auto ret = std::make_unique<std::vector<MoveWithProbability>>(counts_with_temperature_moves.size());
+        for (int i = 0; i < counts_with_temperature_moves.size(); i++) {
+            (*ret)[i] = {counts_with_temperature_moves[i], counts_with_temperature[i] / counts_sum};
         }
         return ret;
     }
@@ -137,6 +156,27 @@ SurakartaAlphazeroMCTS::CalculateMoveProbabilities(float temperature) {
 
 void SurakartaAlphazeroMCTS::Simulate() {
     SimulateAndReturnValue(*root_);
+}
+
+SurakartaAlphazeroNeuralNetworkBase::TrainEntry SurakartaAlphazeroMCTS::GetTrainEntriesWithoutValue() const {
+    auto ret = SurakartaAlphazeroNeuralNetworkBase::TrainEntry();
+    ret.input.board = std::make_unique<SurakartaBoard>(*board_);
+    ret.input.game_info = *game_info_;
+    ret.input.my_color = my_color_;
+    ret.output.current_status_value = 0.0f;
+    ret.output.move_probabilities = std::make_unique<std::vector<SurakartaAlphazeroNeuralNetworkBase::MoveWithProbability>>();
+    int simulation_count_debug = 0;
+    for (int i = 0; i < root_->possible_moves_.size(); i++) {
+        if (root_->childs_[i] != nullptr) {
+            auto move_with_probability = SurakartaAlphazeroNeuralNetworkBase::MoveWithProbability();
+            move_with_probability.move = root_->possible_moves_[i];
+            move_with_probability.probability = static_cast<float>(root_->childs_[i]->simulation_count_) / root_->simulation_count_;
+            ret.output.move_probabilities->push_back(move_with_probability);
+            simulation_count_debug += root_->childs_[i]->simulation_count_;
+        }
+    }
+    assert(simulation_count_debug == root_->simulation_count_);
+    return ret;
 }
 
 /*
@@ -287,6 +327,7 @@ float SurakartaAlphazeroMCTS::SimulateAndReturnValue(Node& node) {
     my_color_ = ReverseColor(my_color_);
     if (node.childs_[best_move_index] == nullptr) {
         node.childs_[best_move_index] = CreateNode();
+        node.childs_[best_move_index]->simulation_count_++;
         RETURN_VALUE(-node.childs_[best_move_index]->neural_network_predicted_value_)
     }
     const auto value = -SimulateAndReturnValue(*node.childs_[best_move_index]);
