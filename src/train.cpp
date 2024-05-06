@@ -41,12 +41,12 @@ int main(int argc, char** argv) {
         std::make_shared<SurakartaAlphazeroNeuralNetworkFactory>(batch_size, epochs));
     auto logger = std::make_shared<SurakartaLoggerStdout>();
     logger->Log("Training model %s", argv[1]);
-    logger->Log("Iterations:            %d", iterations);
-    logger->Log("Simulations per move:  %d", simulation_per_move);
-    logger->Log("CPUCT:                 %f", cpuct);
-    logger->Log("Temperature:           %f", temperature);
-    logger->Log("Batch size:            %d", batch_size);
-    logger->Log("Epochs:                %d", epochs);
+    logger->Log(" - Iterations:            %d", iterations);
+    logger->Log(" - Simulations per move:  %d", simulation_per_move);
+    logger->Log(" - CPUCT:                 %f", cpuct);
+    logger->Log(" - Temperature:           %f", temperature);
+    logger->Log(" - Batch size:            %d", batch_size);
+    logger->Log(" - Epochs:                %d", epochs);
     train_util.Train(argv[1], iterations, simulation_per_move, cpuct, temperature, logger);
 
     return 0;
