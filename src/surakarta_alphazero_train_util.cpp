@@ -12,8 +12,9 @@ void SurakartaAlphazeroTrainUtil::TrainSingleIteration(
     auto threads = std::make_unique<std::thread[]>(concurrency);
     auto train_entries = std::make_unique<std::vector<SurakartaAlphazeroNeuralNetworkBase::TrainEntry>>();
     std::mutex mutex;
+    logger->Log("Start %d games in parallel to collect data", concurrency);
     for (int i = 0; i < concurrency; i++) {
-        threads[i] = std::thread([this, &train_entries, logger, &mutex, model_factory, model_path]() {
+        threads[i] = std::thread([this, &train_entries, logger, &mutex, model_factory, model_path, i]() {
             std::shared_ptr<SurakartaAlphazeroNeuralNetworkBase> model;
             if (!model_factory || model_path.empty()) {
                 model = model_;
@@ -45,7 +46,7 @@ void SurakartaAlphazeroTrainUtil::TrainSingleIteration(
                     train_entries->back().input = std::move(entry.input);
                     train_entries->back().output = std::move(entry.output);
                 }
-                logger->Log("Game finished. total %d moves, winner: %s", game_info.num_round_,
+                logger->Log(" - Game %d finished. total %d moves, winner: %s", i, game_info.num_round_,
                             game_info.Winner() == PieceColor::NONE    ? "none"
                             : game_info.Winner() == PieceColor::WHITE ? "white"
                             : game_info.Winner() == PieceColor::BLACK ? "black"
@@ -56,6 +57,7 @@ void SurakartaAlphazeroTrainUtil::TrainSingleIteration(
     for (int i = 0; i < concurrency; i++) {
         threads[i].join();
     }
+    logger->Log("All games finished. Start training with %d data", train_entries->size());
     model_->Train(std::move(train_entries));
 }
 
@@ -78,6 +80,6 @@ void SurakartaAlphazeroLoadTrainSaveUtil::Train(const std::string& model_path,
     for (int i = 0; i < iterations; i++) {
         train_util.TrainSingleIteration(logger, model_factory_, model_path);
         model->SaveModel(model_path);
-        logger->Log("Iteration %d/%d completed and new model saved", i + 1, iterations);
+        logger->Log("Iteration %d/%d completed and new model saved to %s", i + 1, iterations, model_path.c_str());
     }
 }
