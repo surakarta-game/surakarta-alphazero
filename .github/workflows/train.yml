@@ -1,6 +1,38 @@
 name: Model Training
 
-on: [workflow_dispatch]
+on:
+  workflow_dispatch:
+    inputs:
+      iterations:
+        description: 'iterations'
+        required: true
+        default: 100
+        type: number
+      simulation:
+        description: 'simulation'
+        required: true
+        default: 50
+        type: number
+      cpuct:
+        description: 'cpuct'
+        required: true
+        default: 1.0
+        type: number
+      temperature:
+        description: 'temperature'
+        required: true
+        default: 1.0
+        type: number
+      batch:
+        description: 'batch'
+        required: true
+        default: 10
+        type: number
+      epochs:
+        description: 'epochs'
+        required: true
+        default: 10
+        type: number
 
 jobs:
   train:
@@ -54,7 +86,13 @@ jobs:
 
     - name: Train
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      run: bin/surakarta-alphazero-train model.bin --iterations 100 --simulation 50 --cpuct 1.0 --temperature 1.0 --batch 10 --epochs 10
+      run: bin/surakarta-alphazero-train model.bin              \
+            --iterations ${{ github.event.inputs.iterations }}  \
+            --simulation ${{ github.event.inputs.simulation }}  \
+            --cpuct ${{ github.event.inputs.cpuct }}            \
+            --temperature ${{ github.event.inputs.temperature }}\
+            --batch ${{ github.event.inputs.batch }}            \
+            --epochs ${{ github.event.inputs.epochs }}
 
     - name: Upload Model
       uses: actions/upload-artifact@v4
