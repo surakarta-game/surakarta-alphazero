@@ -4,7 +4,7 @@
 
 // returns a random float between 0 and 1
 static float random_float() {
-    auto random_engine = GlobalRandomGenerator::getInstance();
+    auto& random_engine = GlobalRandomGenerator::getInstance();
     const auto random_int = random_engine();
     return static_cast<float>(random_int - random_engine.min()) /
            static_cast<float>(random_engine.max() - random_engine.min());
