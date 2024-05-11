@@ -54,4 +54,5 @@ add_executable(surakarta-alphazero-benchmark ${SURAKARTA_ALPHAZERO_BENCHMARK_SOU
 target_link_libraries(surakarta-alphazero-benchmark surakarta-alphazero)
 
 add_test(NAME surakarta-alphazero-train-test COMMAND surakarta-alphazero-train tmp.bin -i 1 -s 2 -c 1.0 -t 1.0 -b 1 -e 1)
+add_test(NAME surakarta-alphazero-benchmark-test COMMAND surakarta-alphazero-benchmark play tmp.bin -s 2 -c 1.0 -t 1.0)
 install(TARGETS surakarta-alphazero-train surakarta-alphazero-benchmark)

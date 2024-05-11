@@ -3,7 +3,7 @@
 
 int main(int argc, char** argv) {
     if (argc == 1) {
-        printf("Usage:  %s model_path [args...]\n", argv[0]);
+        printf("Usage:  %s <model_path> [args...]\n", argv[0]);
         printf("Notice: If model does not exist, a new model will be created and saved.\n");
         printf("        Trained model wil coverwrite the existing model, so backup if needed.\n");
         printf("Args:   -i|--iterations <int>    Number of iterations to train the model, default = 100\n");
